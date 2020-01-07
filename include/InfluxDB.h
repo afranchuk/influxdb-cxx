@@ -12,10 +12,12 @@
 #include <deque>
 
 #include "Transport.h"
-#include "Point.h"
 
 namespace influxdb
 {
+
+class Point;
+class QueryResult;
 
 class InfluxDB
 {
@@ -37,7 +39,7 @@ class InfluxDB
     void write(Point&& metric);
 
     /// Queries InfluxDB database
-    std::vector<Point> query(const std::string& query);
+    std::vector<QueryResult> query(const std::string& query);
 
     /// Flushes metric buffer (this can also happens when buffer is full)
     void flushBuffer();
@@ -45,11 +47,6 @@ class InfluxDB
     /// Enables metric buffering
     /// \param size
     void batchOf(const std::size_t size = 32);
-
-    /// Adds a global tag
-    /// \param name
-    /// \param value
-    void addGlobalTag(std::string_view name, std::string_view value);
 
   private:
     /// Buffer for points
@@ -66,9 +63,6 @@ class InfluxDB
 
     /// Transmits string over transport
     void transmit(std::string&& point);
-
-    /// List of global tags
-    std::string mGlobalTags;
 };
 
 } // namespace influxdb

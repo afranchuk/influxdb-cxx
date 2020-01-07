@@ -4,80 +4,96 @@
 
 #include "Point.h"
 
-#include <iostream>
 #include <chrono>
+#include <iostream>
 #include <memory>
 #include <sstream>
 
-namespace influxdb
-{
+namespace influxdb {
 
-template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
-
-Point::Point(const std::string& measurement) :
-  mMeasurement(measurement), mTimestamp(Point::getCurrentTimestamp())
+static std::string escape(std::string_view w, const char *chars)
 {
-  mValue = {};
-  mTags = {};
-  mFields = {};
+    std::string ret;
+    ret.reserve(w.size());
+    size_t pos = 0;
+    while (true) {
+        auto end = w.find_first_of(chars, pos);
+        if (end == std::string_view::npos)
+            break;
+        ret += w.substr(pos, end - pos);
+        ret += '\\';
+        pos = end;
+    }
+    ret += w.substr(pos);
+    return ret;
 }
 
-Point&& Point::addField(std::string_view name, std::variant<int, std::string, double> value)
-{
-  std::stringstream convert;
-  if (!mFields.empty()) convert << ",";
+template <class... Ts> struct overloaded : Ts... {
+    using Ts::operator()...;
+};
+template <class... Ts> overloaded(Ts...)->overloaded<Ts...>;
 
-  convert << name << "=";
-  std::visit(overloaded {
-    [&convert](int value) { convert << value << 'i'; },
-    [&convert](double value) { convert << value; },
-    [&convert](const std::string& value) { convert << '"' << value << '"'; },
-    }, value);
-  mFields += convert.str();
-  return std::move(*this);
+Point::Point(std::string measurement) : _measurement(std::move(measurement)), mTimestamp(std::chrono::system_clock::now()) {}
+
+Point &&Point::addField(std::string name, Point::field_value_type value)
+{
+    _fields.emplace(std::move(name), std::move(value));
+    return std::move(*this);
 }
 
-Point&& Point::addTag(std::string_view key, std::string_view value)
+Point &&Point::addTag(std::string key, std::string value)
 {
-  mTags += ",";
-  mTags += key;
-  mTags += "=";
-  mTags += value;
-  return std::move(*this);
+    _tags.emplace(std::move(key), std::move(value));
+    return std::move(*this);
 }
 
-Point&& Point::setTimestamp(std::chrono::time_point<std::chrono::system_clock> timestamp)
+Point &&Point::setTimestamp(std::chrono::time_point<std::chrono::system_clock> timestamp)
 {
-  mTimestamp = timestamp;
-  return std::move(*this);
-}
-
-auto Point::getCurrentTimestamp() -> decltype(std::chrono::system_clock::now())
-{
-  return std::chrono::system_clock::now();
+    mTimestamp = std::move(timestamp);
+    return std::move(*this);
 }
 
 std::string Point::toLineProtocol() const
 {
-  return mMeasurement + mTags + " " + mFields + " " + std::to_string(
-    std::chrono::duration_cast <std::chrono::nanoseconds>(mTimestamp.time_since_epoch()).count()
-  );
+    std::stringstream ss;
+    ss << escape(_measurement, ", ");
+    for (const auto &[k, v] : _tags) {
+        ss << "," << escape(k, "=, ") << "=" << escape(v, "=, ");
+    }
+    bool has_fields = false;
+    for (const auto &[k, v] : _fields) {
+        ss << (has_fields ? "," : " ") << escape(k, "=, ") << "=";
+        std::visit(overloaded{
+                       [&ss](bool value) { ss << (value ? "true" : "false"); },
+                       [&ss](int value) { ss << value << 'i'; },
+                       [&ss](double value) { ss << value; },
+                       [&ss](const std::string &value) { ss << '"' << escape(value, "\"\\") << '"'; },
+                   },
+                   v);
+        has_fields = true;
+    }
+    if (!has_fields)
+        throw std::runtime_error("cannot convert to line protocol; no fields specified");
+    ss << " "
+       << std::to_string(std::chrono::duration_cast<std::chrono::nanoseconds>(mTimestamp.time_since_epoch()).count());
+
+    return ss.str();
 }
 
-std::string Point::getName() const
+const std::string *Point::tag(const std::string& key) const
 {
-  return mMeasurement;
+    if (_tags.count(key) == 0)
+        return nullptr;
+
+    return &_tags.at(key);
 }
 
-std::chrono::time_point<std::chrono::system_clock> Point::getTimestamp() const
+const Point::field_value_type *Point::field(const std::string& key) const
 {
-  return mTimestamp;
-}
+    if (_fields.count(key) == 0)
+        return nullptr;
 
-std::string Point::getFields() const
-{
-  return mFields;
+    return &_fields.at(key);
 }
 
 } // namespace influxdb

@@ -3,6 +3,8 @@
 ///
 
 #include "InfluxDB.h"
+#include "Point.h"
+#include "QueryResult.h"
 
 #include <iostream>
 #include <memory>
@@ -20,7 +22,6 @@ InfluxDB::InfluxDB(std::unique_ptr<Transport> transport) :
   mBuffer = {};
   mBuffering = false;
   mBufferSize = 0;
-  mGlobalTags = {};
 }
 
 void InfluxDB::batchOf(const std::size_t size)
@@ -39,14 +40,6 @@ void InfluxDB::flushBuffer() {
   }
   mBuffer.clear();
   transmit(std::move(stringBuffer));
-}
-
-void InfluxDB::addGlobalTag(std::string_view key, std::string_view value)
-{
-  if (!mGlobalTags.empty()) mGlobalTags += ",";
-  mGlobalTags += key;
-  mGlobalTags += "=";
-  mGlobalTags += value;
 }
 
 InfluxDB::~InfluxDB()
@@ -73,12 +66,12 @@ void InfluxDB::write(Point&& metric)
   }
 }
 
-std::vector<Point> InfluxDB::query(const std::string&  query)
+std::vector<QueryResult> InfluxDB::query(const std::string&  query)
 {
   auto response = mTransport->query(query);
   std::stringstream ss;
   ss << response;
-  std::vector<Point> points;
+  std::vector<QueryResult> points;
   boost::property_tree::ptree pt;
   boost::property_tree::read_json(ss, pt);
 
@@ -89,22 +82,22 @@ std::vector<Point> InfluxDB::query(const std::string&  query)
       auto columns = series.second.get_child("columns");
 
       for (auto& values : series.second.get_child("values")) {
-        Point point{series.second.get<std::string>("name")};
+        QueryResult point;
+        point._measurement = series.second.get<std::string>("name");
         auto iColumns = columns.begin();
         auto iValues = values.second.begin();
         for (; iColumns != columns.end() && iValues != values.second.end(); iColumns++, iValues++) {
           auto value = iValues->second.get_value<std::string>();
           auto column = iColumns->second.get_value<std::string>();
-          if (!column.compare("time")) {
+          if (column == "time") {
             std::tm tm = {};
             std::stringstream ss;
             ss << value;
             ss >> std::get_time(&tm, "%FT%TZ");
-            point.setTimestamp(std::chrono::system_clock::from_time_t(std::mktime(&tm)));
+            point._timestamp = std::chrono::system_clock::from_time_t(std::mktime(&tm));
             continue;
           }
-          try { point.addField(column, boost::lexical_cast<double>(value)); }
-          catch(...) { point.addTag(column, value); }
+          point._values.emplace(column, value);
         }
         points.push_back(std::move(point));
       }

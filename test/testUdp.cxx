@@ -3,6 +3,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "../include/InfluxDBFactory.h"
+#include "../include/Point.h"
 
 namespace influxdb {
 namespace test {

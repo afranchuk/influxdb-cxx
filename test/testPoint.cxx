@@ -2,7 +2,10 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
+#include <iterator>
+
 #include "../include/InfluxDBFactory.h"
+#include "../include/Point.h"
 
 namespace influxdb {
 namespace test {

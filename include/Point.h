@@ -5,8 +5,10 @@
 #ifndef INFLUXDATA_POINT_H
 #define INFLUXDATA_POINT_H
 
-#include <string>
 #include <chrono>
+#include <map>
+#include <optional>
+#include <string>
 #include <variant>
 
 namespace influxdb
@@ -16,51 +18,57 @@ namespace influxdb
 class Point
 {
   public:
+    using field_value_type = std::variant<int, double, std::string, bool>;
+
     /// Constructs point based on measurement name
-    Point(const std::string& measurement);
+    Point(std::string measurement);
 
     /// Default destructor
     ~Point() = default;
 
     /// Adds a tags
-    Point&& addTag(std::string_view key, std::string_view value);
+    Point&& addTag(std::string key, std::string value);
 
     /// Adds filed
-    Point&& addField(std::string_view name, std::variant<int, std::string, double> value);
-
-    /// Generetes current timestamp
-    static auto getCurrentTimestamp() -> decltype(std::chrono::system_clock::now());
-
-    /// Converts point to Influx Line Protocol
-    std::string toLineProtocol() const;
+    Point&& addField(std::string name, field_value_type value);
 
     /// Sets custom timestamp
     Point&& setTimestamp(std::chrono::time_point<std::chrono::system_clock> timestamp);
 
-    /// Name getter
-    std::string getName() const;
+    /// Converts point to Influx Line Protocol
+    std::string toLineProtocol() const;
 
-    /// Timestamp getter
-    std::chrono::time_point<std::chrono::system_clock> getTimestamp() const;
+    /// Get the measurement.
+    const std::string& measurement() const { return _measurement; }
 
-    /// Fields getter
-    std::string getFields() const;
+    /// Get the point tags.
+    const std::map<std::string, std::string>& tags() const { return _tags; }
+
+    /// Get the point fields.
+    const std::map<std::string, field_value_type>& fields() const { return _fields; }
+
+    /// Get a specific tag.
+    ///
+    /// Returns nullptr if no tag exists.
+    const std::string* tag(const std::string& key) const;
+
+    /// Get a specific field.
+    ///
+    /// Returns nullptr if no field exists.
+    const field_value_type* field(const std::string& key) const;
 
   protected:
-    /// A value
-    std::variant<int, std::string, double> mValue;
+    /// The point measurement name.
+    const std::string _measurement;
 
-    /// A name
-    std::string mMeasurement;
+    /// Point tags.
+    std::map<std::string, std::string> _tags;
+
+    /// Point fields.
+    std::map<std::string, field_value_type> _fields;
 
     /// A timestamp
     std::chrono::time_point<std::chrono::system_clock> mTimestamp;
-
-    /// Tags
-    std::string mTags;
-
-    /// Fields
-    std::string mFields;
 };
 
 } // namespace influxdb

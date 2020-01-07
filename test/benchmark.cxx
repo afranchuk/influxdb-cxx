@@ -1,4 +1,5 @@
-#include  <InfluxDBFactory.h>
+#include <InfluxDBFactory.h>
+#include <Point.h>
 #include <boost/program_options.hpp>
 #include <iostream>
 
