@@ -50,7 +50,7 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
 
 void HTTP::initCurlRead(const std::string& url)
 {
-  mReadUrl = url + "&q=";
+  mReadUrl = url + "&epoch=ns&q=";
   mReadUrl.insert(mReadUrl.find("?"), "/query");
   readHandle = curl_easy_init();
   curl_easy_setopt(readHandle, CURLOPT_SSL_VERIFYPEER, 0); 

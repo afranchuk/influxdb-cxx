@@ -66,7 +66,7 @@ void InfluxDB::write(Point&& metric)
   }
 }
 
-std::vector<QueryResult> InfluxDB::query(const std::string&  query)
+std::vector<QueryResult> InfluxDB::query(const std::string& query)
 {
   auto response = mTransport->query(query);
   std::stringstream ss;
@@ -90,11 +90,11 @@ std::vector<QueryResult> InfluxDB::query(const std::string&  query)
           auto value = iValues->second.get_value<std::string>();
           auto column = iColumns->second.get_value<std::string>();
           if (column == "time") {
-            std::tm tm = {};
             std::stringstream ss;
             ss << value;
-            ss >> std::get_time(&tm, "%FT%TZ");
-            point._timestamp = std::chrono::system_clock::from_time_t(std::mktime(&tm));
+            size_t ns = 0;
+            ss >> ns;
+            point._timestamp = std::chrono::time_point<std::chrono::system_clock>(std::chrono::nanoseconds(ns));
             continue;
           }
           point._values.emplace(column, value);
