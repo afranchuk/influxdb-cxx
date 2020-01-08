@@ -22,7 +22,8 @@ static std::string escape(std::string_view w, const char *chars)
             break;
         ret += w.substr(pos, end - pos);
         ret += '\\';
-        pos = end;
+        ret += w[end];
+        pos = end + 1;
     }
     ret += w.substr(pos);
     return ret;
