@@ -58,7 +58,7 @@ BOOST_AUTO_TEST_CASE(test4)
 {
   auto point = Point{"test"}
     .addField("value", 10)
-    .setTimestamp(std::chrono::time_point<std::chrono::system_clock>(std::chrono::milliseconds(1572830914)));
+    .setTimestamp(Clock::time_point(std::chrono::milliseconds(1572830914)));
 
   auto result = getVector(point);
   BOOST_CHECK_EQUAL(result[2], "1572830914000000");

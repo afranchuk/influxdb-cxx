@@ -34,7 +34,7 @@ template <class... Ts> struct overloaded : Ts... {
 };
 template <class... Ts> overloaded(Ts...)->overloaded<Ts...>;
 
-Point::Point(std::string measurement) : _measurement(std::move(measurement)), mTimestamp(std::chrono::system_clock::now()) {}
+Point::Point(std::string measurement) : _measurement(std::move(measurement)), _timestamp(Clock::now()) {}
 
 Point &&Point::addField(std::string name, Point::field_value_type value)
 {
@@ -48,9 +48,9 @@ Point &&Point::addTag(std::string key, std::string value)
     return std::move(*this);
 }
 
-Point &&Point::setTimestamp(std::chrono::time_point<std::chrono::system_clock> timestamp)
+Point &&Point::setTimestamp(Clock::time_point timestamp)
 {
-    mTimestamp = std::move(timestamp);
+    _timestamp = std::move(timestamp);
     return std::move(*this);
 }
 
@@ -76,7 +76,7 @@ std::string Point::toLineProtocol() const
     if (!has_fields)
         throw std::runtime_error("cannot convert to line protocol; no fields specified");
     ss << " "
-       << std::to_string(std::chrono::duration_cast<std::chrono::nanoseconds>(mTimestamp.time_since_epoch()).count());
+       << std::to_string(_timestamp.time_since_epoch().count());
 
     return ss.str();
 }

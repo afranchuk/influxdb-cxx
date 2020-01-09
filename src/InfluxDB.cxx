@@ -94,7 +94,7 @@ std::vector<QueryResult> InfluxDB::query(const std::string& query)
             ss << value;
             size_t ns = 0;
             ss >> ns;
-            point._timestamp = std::chrono::time_point<std::chrono::system_clock>(std::chrono::nanoseconds(ns));
+            point._timestamp = Clock::time_point(std::chrono::nanoseconds(ns));
             continue;
           }
           point._values.emplace(column, value);

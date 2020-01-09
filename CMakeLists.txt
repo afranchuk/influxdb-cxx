@@ -69,6 +69,7 @@ set(SRCS
   src/InfluxDB.cxx
   src/Point.cxx
   src/InfluxDBFactory.cxx
+  src/Clock.cxx
   $<$<BOOL:${Boost_FOUND}>:src/UDP.cxx>
   $<$<BOOL:${Boost_FOUND}>:src/UnixSocket.cxx>
   src/HTTP.cxx

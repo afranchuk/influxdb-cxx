@@ -11,6 +11,8 @@
 #include <string>
 #include <variant>
 
+#include "Clock.h"
+
 namespace influxdb
 {
 
@@ -33,7 +35,7 @@ class Point
     Point&& addField(std::string name, field_value_type value);
 
     /// Sets custom timestamp
-    Point&& setTimestamp(std::chrono::time_point<std::chrono::system_clock> timestamp);
+    Point&& setTimestamp(Clock::time_point timestamp);
 
     /// Converts point to Influx Line Protocol
     std::string toLineProtocol() const;
@@ -57,6 +59,9 @@ class Point
     /// Returns nullptr if no field exists.
     const field_value_type* field(const std::string& key) const;
 
+    /// Get the timestamp.
+    const Clock::time_point& timestamp() const { return _timestamp; }
+
   protected:
     /// The point measurement name.
     const std::string _measurement;
@@ -68,7 +73,7 @@ class Point
     std::map<std::string, field_value_type> _fields;
 
     /// A timestamp
-    std::chrono::time_point<std::chrono::system_clock> mTimestamp;
+    Clock::time_point _timestamp;
 };
 
 } // namespace influxdb

@@ -17,7 +17,7 @@ namespace influxdb
 {
 
 class Point;
-class QueryResult;
+struct QueryResult;
 
 class InfluxDB
 {
