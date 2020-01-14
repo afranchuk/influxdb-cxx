@@ -9,9 +9,8 @@
 #include <iostream>
 #include <memory>
 #include <string>
-#include <boost/lexical_cast.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
+
+#include "json.hpp"
 
 namespace influxdb
 {
@@ -72,32 +71,28 @@ std::vector<QueryResult> InfluxDB::query(const std::string& query)
   std::stringstream ss;
   ss << response;
   std::vector<QueryResult> points;
-  boost::property_tree::ptree pt;
-  boost::property_tree::read_json(ss, pt);
 
-  for (auto& result : pt.get_child("results")) {
-    auto isResultEmpty = result.second.find("series");
-    if (isResultEmpty == result.second.not_found()) return {};
-    for (auto& series : result.second.get_child("series")) {
-      auto columns = series.second.get_child("columns");
+  auto root = nlohmann::json::parse(response);
 
-      for (auto& values : series.second.get_child("values")) {
+  for (auto& result : root["results"]) {
+    auto series = result["series"];
+    if (series.is_null()) return {};
+    for (auto& s : series) {
+      auto columns = s["columns"];
+      std::string name = s["name"];
+
+      for (auto& values : s["values"]) {
         QueryResult point;
-        point._measurement = series.second.get<std::string>("name");
-        auto iColumns = columns.begin();
-        auto iValues = values.second.begin();
-        for (; iColumns != columns.end() && iValues != values.second.end(); iColumns++, iValues++) {
-          auto value = iValues->second.get_value<std::string>();
-          auto column = iColumns->second.get_value<std::string>();
-          if (column == "time") {
-            std::stringstream ss;
-            ss << value;
-            size_t ns = 0;
-            ss >> ns;
-            point._timestamp = Clock::time_point(std::chrono::nanoseconds(ns));
-            continue;
+        point._measurement = name;
+        auto ic = columns.begin();
+        auto iv = values.begin();
+        for (; ic != columns.end() && iv != values.end(); ic++, iv++) {
+          std::string col = *ic;
+          if (iv->is_number_integer() && col == "time") {
+              point._timestamp = Clock::time_point(std::chrono::nanoseconds(*iv));
+              continue;
           }
-          point._values.emplace(column, value);
+          point._values.emplace(col, iv->is_string() ? (std::string)*iv : iv->dump());
         }
         points.push_back(std::move(point));
       }
