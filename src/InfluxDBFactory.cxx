@@ -37,7 +37,12 @@ std::unique_ptr<Transport> withUnixSocketTransport(const http::url& /*uri*/) {
 #endif
 
 std::unique_ptr<Transport> withHttpTransport(const http::url& uri) {
-  auto transport = std::make_unique<transports::HTTP>(uri.url);
+  auto pos = uri.path.find("?db=");
+  if (pos == std::string::npos) {
+      throw std::runtime_error("db not specified");
+  }
+  auto db = uri.path.substr(pos + 4);
+  auto transport = std::make_unique<transports::HTTP>(uri.host, uri.port == -1 ? 80 : uri.port, db);
   if (!uri.user.empty()) {
     transport->enableBasicAuth(uri.user + ":" + uri.password);
   }

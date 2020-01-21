@@ -6,7 +6,7 @@
 #define INFLUXDATA_TRANSPORTS_HTTP_H
 
 #include "Transport.h"
-#include <curl/curl.h>
+#include "httplib.h"
 #include <memory>
 #include <string>
 
@@ -20,7 +20,7 @@ class HTTP : public Transport
 {
   public:
     /// Constructor
-    HTTP(const std::string& url);
+    HTTP(const std::string& url, int port, const std::string& db);
 
     /// Default destructor
     ~HTTP();
@@ -38,19 +38,10 @@ class HTTP : public Transport
     /// Enable SSL
     void enableSsl();
   private:
-
-    /// Initilizes CURL and all common options
-    void initCurl(const std::string& url);
-    void initCurlRead(const std::string& url);
-
-    /// CURL pointer configured for writting points
-    CURL* writeHandle;
-
-    /// CURL poiter confgured for querying
-    CURL* readHandle;
+    httplib::Client client;
 
     /// InfluxDB read URL
-    std::string mReadUrl;
+    std::string db;
 };
 
 } // namespace transports

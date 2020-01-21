@@ -5,7 +5,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.5.2 FATAL_ERROR)
 
 # Make boost 1.70 happy
-SET(BUILD_SHARED_LIBS ON)
+#SET(BUILD_SHARED_LIBS ON)
 
 # Set cmake policy by version: https://cmake.org/cmake/help/latest/manual/cmake-policies.7.html
 if(${CMAKE_VERSION} VERSION_LESS 3.12)
@@ -54,7 +54,7 @@ endif()
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 find_package(Boost COMPONENTS unit_test_framework system program_options)
-find_package(CURL REQUIRED MODULE)
+find_package(Threads REQUIRED)
 
 
 ####################################
@@ -76,7 +76,7 @@ set(SRCS
 )
 
 # Create library
-add_library(InfluxDB SHARED ${SRCS})
+add_library(InfluxDB ${SRCS})
 target_include_directories(InfluxDB
   PUBLIC
     $<INSTALL_INTERFACE:include>
@@ -89,7 +89,7 @@ target_include_directories(InfluxDB
 target_link_libraries(InfluxDB
   PRIVATE
     $<$<BOOL:${Boost_FOUND}>:Boost::system>
-    CURL::CURL
+    Threads::Threads
 )
 
 # Use C++17
