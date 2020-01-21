@@ -63,7 +63,7 @@ find_package(Threads REQUIRED)
 
 set(LIBRARY_OUTPUT_PATH "${CMAKE_BINARY_DIR}/lib")
 set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/bin")
-set(INCLUDE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/include")
+set(INCLUDE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/include/influxdb")
 
 set(SRCS
   src/InfluxDB.cxx
@@ -169,7 +169,8 @@ write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/cmake/InfluxDBConf
 )
 
 # Install headers
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION
+  "${CMAKE_INSTALL_INCLUDEDIR}/influxdb")
 
 # Export targets
 install(EXPORT InfluxDBTargets
